@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anatomia do Código — Janela Automática</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0D1B2A;
+    --panel: #14283C;
+    --panel-light: #1C3650;
+    --line: #2E4A64;
+    --text: #E9EFF4;
+    --text-dim: #8CA3B8;
+    --rain: #6FCBEA;
+    --alert: #F2A65A;
+    --ok: #7EDCA6;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  body{
+    background:
+      radial-gradient(circle at 1px 1px, rgba(111,203,234,0.06) 1px, transparent 0) 0 0/28px 28px,
+      var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
+    line-height:1.6;
+    padding-bottom:80px;
+  }
+
+  a{color:var(--rain);}
+
+  .wrap{max-width:920px; margin:0 auto; padding:0 24px;}
+
+  /* HERO */
+  header.hero{
+    padding:90px 24px 60px;
+    border-bottom:1px solid var(--line);
+    position:relative;
+    overflow:hidden;
+  }
+  .hero-inner{max-width:920px; margin:0 auto; position:relative; z-index:2;}
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    color:var(--rain);
+    font-size:13px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:22px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:8px; height:8px;
+    background:var(--rain);
+    border-radius:50%;
+    box-shadow:0 0 12px var(--rain);
+  }
+  h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:clamp(34px, 5vw, 52px);
+    line-height:1.08;
+    letter-spacing:-0.01em;
+    max-width:12ch;
+  }
+  .hero p.sub{
+    margin-top:20px;
+    max-width:56ch;
+    color:var(--text-dim);
+    font-size:17px;
+  }
+
+  .rain{
+    position:absolute; inset:0; z-index:1; pointer-events:none;
+    opacity:0.5;
+  }
+  .drop{
+    position:absolute;
+    width:1.5px;
+    background:linear-gradient(to bottom, transparent, var(--rain));
+    animation:fall linear infinite;
+  }
+  @keyframes fall{
+    to{ transform:translateY(320px); opacity:0; }
+  }
+
+  /* SIMULATOR — signature element */
+  .sim{
+    margin:56px 0 64px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:28px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:28px;
+  }
+  @media(max-width:700px){ .sim{grid-template-columns:1fr;} }
+
+  .sim h3{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    color:var(--text-dim);
+    margin-bottom:16px;
+  }
+
+  .sim-control{display:flex; flex-direction:column; justify-content:center;}
+  .readout{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:44px;
+    font-weight:600;
+    color:var(--rain);
+    margin-bottom:6px;
+  }
+  .readout span{font-size:20px; color:var(--text-dim);}
+  .threshold-note{font-size:13px; color:var(--text-dim); margin-bottom:18px; font-family:'IBM Plex Mono', monospace;}
+  input[type=range]{
+    -webkit-appearance:none;
+    width:100%;
+    height:6px;
+    border-radius:3px;
+    background:var(--panel-light);
+    outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:20px; height:20px;
+    border-radius:50%;
+    background:var(--rain);
+    cursor:pointer;
+    box-shadow:0 0 0 4px rgba(111,203,234,0.2);
+  }
+
+  .sim-visual{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    border-left:1px dashed var(--line);
+    padding-left:28px;
+  }
+  @media(max-width:700px){ .sim-visual{border-left:none; border-top:1px dashed var(--line); padding-left:0; padding-top:20px;} }
+
+  .window-frame{
+    width:110px; height:130px;
+    border:4px solid var(--text-dim);
+    border-radius:4px;
+    position:relative;
+    background:var(--panel-light);
+    overflow:hidden;
+  }
+  .window-panel{
+    position:absolute; top:0; left:0;
+    width:50%; height:100%;
+    background:var(--panel);
+    border-right:2px solid var(--text-dim);
+    transition:transform 0.6s cubic-bezier(.4,0,.2,1);
+  }
+  .window-panel.right{left:50%; border-right:none; border-left:2px solid var(--text-dim);}
+
+  .state-tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    padding:6px 14px;
+    border-radius:20px;
+    background:rgba(126,220,166,0.12);
+    color:var(--ok);
+    border:1px solid rgba(126,220,166,0.3);
+    transition:all 0.3s ease;
+  }
+  .state-tag.closed{
+    background:rgba(242,166,90,0.12);
+    color:var(--alert);
+    border-color:rgba(242,166,90,0.3);
+  }
+
+  .log{
+    grid-column:1/-1;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--text-dim);
+    background:#0A1622;
+    border-radius:8px;
+    padding:14px 16px;
+    height:70px;
+    overflow-y:auto;
+    border:1px solid var(--line);
+  }
+  .log div{padding:1px 0;}
+  .log .hi{color:var(--rain);}
+  .log .al{color:var(--alert);}
+
+  /* SECTIONS */
+  section.block{
+    margin-top:64px;
+    display:grid;
+    grid-template-columns:38px 1fr;
+    gap:0 20px;
+  }
+  .marker{
+    font-family:'IBM Plex Mono', monospace;
+    color:var(--line);
+    font-size:13px;
+    padding-top:6px;
+    position:relative;
+  }
+  .marker::after{
+    content:"";
+    position:absolute;
+    top:26px; left:50%;
+    width:1px; height:calc(100% + 40px);
+    background:var(--line);
+    transform:translateX(-50%);
+  }
+  section.block:last-of-type .marker::after{display:none;}
+
+  .block h2{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:22px;
+    font-weight:600;
+    margin-bottom:14px;
+    color:var(--text);
+  }
+  .block p{color:var(--text-dim); margin-bottom:14px; max-width:64ch; font-size:15.5px;}
+  .block p strong{color:var(--text); font-weight:600;}
+
+  pre{
+    background:#0A1622;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:18px 20px;
+    overflow-x:auto;
+    margin:16px 0 18px;
+  }
+  code{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13.5px;
+    color:#C9D9E5;
+    line-height:1.7;
+  }
+  .kw{color:var(--rain);}
+  .fn{color:var(--ok);}
+  .cm{color:var(--text-dim); font-style:italic;}
+  .nm{color:var(--alert);}
+
+  .callout{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:3px solid var(--rain);
+    border-radius:0 8px 8px 0;
+    padding:14px 18px;
+    font-size:14px;
+    color:var(--text-dim);
+    margin-top:6px;
+  }
+  .callout strong{color:var(--text);}
+
+  footer{
+    max-width:920px;
+    margin:80px auto 0;
+    padding:24px;
+    border-top:1px solid var(--line);
+    color:var(--text-dim);
+    font-size:13px;
+    font-family:'IBM Plex Mono', monospace;
+    text-align:center;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .drop{animation:none; display:none;}
+    .window-panel{transition:none;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="rain" id="rain"></div>
+  <div class="hero-inner">
+    <div class="eyebrow">Projeto Arduino · DHT22 + Servo</div>
+    <h1>Anatomia do código da janela automática</h1>
+    <p class="sub">Um passo a passo de como o Arduino lê a umidade do ar e decide, sozinho, a hora de fechar a janela antes da chuva entrar.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="sim">
+    <div class="sim-control">
+      <h3>Simule a umidade do ar</h3>
+      <div class="readout" id="readout">45<span>%</span></div>
+      <div class="threshold-note">UMIDADE_LIMITE = 70.0%</div>
+      <input type="range" id="slider" min="0" max="100" value="45">
+    </div>
+    <div class="sim-visual">
+      <div class="window-frame">
+        <div class="window-panel left" id="panelLeft"></div>
+        <div class="window-panel right" id="panelRight"></div>
+      </div>
+      <div class="state-tag" id="stateTag">janela aberta</div>
+    </div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <section class="block">
+    <div class="marker">01</div>
+    <div>
+      <h2>Bibliotecas e definições</h2>
+      <p>As duas primeiras linhas trazem as ferramentas prontas: uma para conversar com o sensor <strong>DHT22</strong>, outra para controlar o <strong>servo motor</strong> — essa já vem instalada por padrão no Arduino.</p>
+      <pre><code><span class="kw">#include</span> &lt;DHT.h&gt;
+<span class="kw">#include</span> &lt;Servo.h&gt;
+
+<span class="kw">#define</span> PINO_DHT <span class="nm">2</span>
+<span class="kw">#define</span> TIPO_DHT DHT22
+<span class="kw">#define</span> PINO_SERVO <span class="nm">9</span>
+<span class="kw">#define</span> UMIDADE_LIMITE <span class="nm">70.0</span></code></pre>
+      <div class="callout"><strong>Por que <code>#define</code>?</strong> Cria apelidos fixos pros números. Se um dia você trocar o sensor de pino, muda em um lugar só — o resto do código continua chamando <code>PINO_DHT</code>.</div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="marker">02</div>
+    <div>
+      <h2>Objetos e estado</h2>
+      <p>Aqui nascem os dois "personagens" do código: o sensor e o servo. E uma variável que guarda se a janela está fechada ou não — essa é a memória do sistema.</p>
+      <pre><code>DHT dht(PINO_DHT, TIPO_DHT);
+Servo servoJanela;
+
+<span class="kw">bool</span> janelaFechada = <span class="nm">false</span>;
+
+<span class="kw">const</span> <span class="kw">int</span> ANGULO_ABERTA = <span class="nm">0</span>;
+<span class="kw">const</span> <span class="kw">int</span> ANGULO_FECHADA = <span class="nm">90</span>;</code></pre>
+      <div class="callout"><strong>O papel do <code>bool janelaFechada</code>:</strong> sem essa variável, o Arduino não saberia se já mandou fechar a janela — e ficaria repetindo o comando toda hora, mesmo sem necessidade.</div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="marker">03</div>
+    <div>
+      <h2>setup() — roda uma vez</h2>
+      <p>Liga a comunicação serial, inicializa o sensor, conecta o servo ao pino físico e já deixa a janela na posição aberta assim que o Arduino é ligado.</p>
+      <pre><code><span class="kw">void</span> <span class="fn">setup</span>() {
+  Serial.<span class="fn">begin</span>(<span class="nm">9600</span>);
+  dht.<span class="fn">begin</span>();
+  servoJanela.<span class="fn">attach</span>(PINO_SERVO);
+  servoJanela.<span class="fn">write</span>(ANGULO_ABERTA);
+}</code></pre>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="marker">04</div>
+    <div>
+      <h2>Lendo o sensor, com segurança</h2>
+      <p>A cada volta do <code>loop()</code>, o Arduino pergunta ao DHT22 qual a umidade e temperatura atuais. Mas sensores falham às vezes — por isso existe a checagem <code>isnan()</code> (<em>is not a number</em>).</p>
+      <pre><code><span class="kw">float</span> umidade = dht.<span class="fn">readHumidity</span>();
+<span class="kw">float</span> temperatura = dht.<span class="fn">readTemperature</span>();
+
+<span class="kw">if</span> (<span class="fn">isnan</span>(umidade) || <span class="fn">isnan</span>(temperatura)) {
+  Serial.<span class="fn">println</span>(<span class="cm">"Erro ao ler o sensor!"</span>);
+  <span class="fn">delay</span>(<span class="nm">2000</span>);
+  <span class="kw">return</span>;
+}</code></pre>
+      <div class="callout"><strong>O <code>return</code> aqui é o herói silencioso:</strong> se a leitura vier corrompida, o código pula todo o resto do loop e tenta de novo na próxima volta, em vez de agir com base num dado errado.</div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="marker">05</div>
+    <div>
+      <h2>A decisão: fechar ou abrir</h2>
+      <p>Este é o cérebro do projeto. Duas condições, uma oposta à outra, cada uma só age quando o <strong>estado muda</strong> — é aqui que a variável <code>janelaFechada</code> prova seu valor.</p>
+      <pre><code><span class="kw">if</span> (umidade &gt;= UMIDADE_LIMITE && !janelaFechada) {
+  servoJanela.<span class="fn">write</span>(ANGULO_FECHADA);
+  janelaFechada = <span class="nm">true</span>;
+}
+<span class="kw">else if</span> (umidade &lt; UMIDADE_LIMITE && janelaFechada) {
+  servoJanela.<span class="fn">write</span>(ANGULO_ABERTA);
+  janelaFechada = <span class="nm">false</span>;
+}</code></pre>
+      <div class="callout"><strong>Por que o <code>!janelaFechada</code> importa:</strong> sem ele, o servo receberia o comando "feche" a cada 2 segundos enquanto a umidade estivesse alta — mesmo já fechado. Isso causa tremulação no motor e desgaste do mecanismo com o tempo.</div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="marker">06</div>
+    <div>
+      <h2>O ritmo do loop</h2>
+      <p>Por fim, uma pausa de 2 segundos antes de repetir tudo. O DHT22 não é um sensor rápido — ler com pressa demais só traz mais erros.</p>
+      <pre><code><span class="fn">delay</span>(<span class="nm">2000</span>);</code></pre>
+    </div>
+  </section>
+
+</div>
+
+<footer>projeto de janela automática · arduino uno + dht22 + servo</footer>
+
+<script>
+  // chuva decorativa no hero
+  const rainC = document.getElementById('rain');
+  for(let i=0;i<40;i++){
+    const d = document.createElement('div');
+    d.className='drop';
+    d.style.left = Math.random()*100+'%';
+    d.style.top = (Math.random()*-100)+'px';
+    d.style.height = (14+Math.random()*18)+'px';
+    d.style.animationDuration = (0.7+Math.random()*0.8)+'s';
+    d.style.animationDelay = (Math.random()*2)+'s';
+    rainC.appendChild(d);
+  }
+
+  // simulador
+  const slider = document.getElementById('slider');
+  const readout = document.getElementById('readout');
+  const panelLeft = document.getElementById('panelLeft');
+  const panelRight = document.getElementById('panelRight');
+  const stateTag = document.getElementById('stateTag');
+  const log = document.getElementById('log');
+
+  const LIMITE = 70;
+  let janelaFechada = false;
+
+  function addLog(msg, cls){
+    const line = document.createElement('div');
+    line.innerHTML = (cls? '<span class="'+cls+'">'+msg+'</span>' : msg);
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  addLog('&gt; sistema iniciado. janela aberta.', 'hi');
+
+  function update(){
+    const umidade = parseInt(slider.value);
+    readout.innerHTML = umidade + '<span>%</span>';
+
+    if(umidade >= LIMITE && !janelaFechada){
+      janelaFechada = true;
+      panelLeft.style.transform = 'translateX(100%)';
+      panelRight.style.transform = 'translateX(-100%)';
+      stateTag.textContent = 'janela fechada';
+      stateTag.classList.add('closed');
+      addLog('&gt; umidade ' + umidade + '% &gt;= 70% → fechando janela...', 'al');
+    } else if(umidade < LIMITE && janelaFechada){
+      janelaFechada = false;
+      panelLeft.style.transform = 'translateX(0)';
+      panelRight.style.transform = 'translateX(0)';
+      stateTag.textContent = 'janela aberta';
+      stateTag.classList.remove('closed');
+      addLog('&gt; umidade ' + umidade + '% &lt; 70% → abrindo janela...', 'hi');
+    }
+  }
+
+  slider.addEventListener('input', update);
+</script>
+
+</body>
+</html>
